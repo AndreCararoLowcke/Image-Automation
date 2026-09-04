@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Balões Multilíngue</title>
+</head>
+<body>
+  <!-- Botão para iniciar a geração -->
+  <button id="gerar">Gerar imagens</button>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    // Lista de textos em diferentes idiomas
+    const idiomas = [
+      "Olá mundo!",       // Português
+      "Hello world!",     // Inglês
+      "Hola mundo!",      // Espanhol
+      "Bonjour le monde!",// Francês
+      "Hallo Welt!",      // Alemão
+      "Ciao mondo!"       // Italiano
+    ];
+
+    // Carregar imagem base
+    const img = new Image();
+    img.src = "base.png"; // substitua pelo caminho da sua imagem
+    img.crossOrigin = "anonymous"; // evita problemas de CORS
+
+    // Função principal
+    function gerarImagens() {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      idiomas.forEach((texto, i) => {
+        // Ajusta tamanho do canvas
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Desenha imagem base
+        ctx.drawImage(img, 0, 0);
+
+        // Desenha balão estilo quadrinhos
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(200, 100, 150, 80, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Adiciona texto dentro do balão
+        ctx.fillStyle = "black";
+        ctx.font = "24px Arial";
+        ctx.fillText(texto, 120, 110);
+
+        // Exporta cada versão automaticamente
+        const link = document.createElement("a");
+        link.download = `saida_${i}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+
+    // Só gera quando a imagem estiver carregada
+    img.onload = () => {
+      document.getElementById("gerar").onclick = gerarImagens;
+    };
+  </script>
+</body>
+</html>
