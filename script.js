@@ -34,7 +34,78 @@ document.getElementById("canvas").addEventListener("click", (event) => {
   drawPreview();
 });
 
-// Draw preview
+// Draw rounded rectangle
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+// Wrap and center text
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, boxHeight) {
+  const words = text.split(" ");
+  let line = "";
+  const lines = [];
+
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + " ";
+    const metrics = ctx.measureText(testLine);
+    const testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      lines.push(line);
+      line = words[n] + " ";
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line);
+
+  const totalHeight = lines.length * lineHeight;
+  let startY = y + (boxHeight - totalHeight) / 2 + lineHeight;
+
+  lines.forEach(l => {
+    const lineWidth = ctx.measureText(l).width;
+    ctx.fillText(l.trim(), x + (maxWidth - lineWidth) / 2, startY);
+    startY += lineHeight;
+  });
+}
+
+// Draw balloon
+function drawBalloon(ctx, size, includeTail) {
+  const boxWidth = size * 2;
+  const boxHeight = size * 1.2;
+  const x = balloonPosition.x - boxWidth / 2;
+  const y = balloonPosition.y - boxHeight / 2;
+
+  ctx.fillStyle = "white";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 3;
+  drawRoundedRect(ctx, x, y, boxWidth, boxHeight, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  if (includeTail) {
+    ctx.beginPath();
+    ctx.moveTo(balloonPosition.x, y + boxHeight);
+    ctx.lineTo(balloonPosition.x + 20, y + boxHeight + 40);
+    ctx.lineTo(balloonPosition.x + 40, y + boxHeight);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  return { x, y, boxWidth, boxHeight };
+}
+
+// Preview
 function drawPreview() {
   if (!image) return;
   const canvas = document.getElementById("canvas");
@@ -45,24 +116,7 @@ function drawPreview() {
   ctx.drawImage(image, 0, 0);
 
   const size = parseInt(document.getElementById("size").value);
-
-  ctx.fillStyle = "white";
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.ellipse(balloonPosition.x, balloonPosition.y, size, size * 0.6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  if (document.getElementById("tail").checked) {
-    ctx.beginPath();
-    ctx.moveTo(balloonPosition.x, balloonPosition.y + size * 0.6);
-    ctx.lineTo(balloonPosition.x + 20, balloonPosition.y + size * 0.6 + 40);
-    ctx.lineTo(balloonPosition.x + 40, balloonPosition.y + size * 0.6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
+  drawBalloon(ctx, size, document.getElementById("tail").checked);
 }
 
 // Generate images
@@ -90,28 +144,11 @@ function generateImages() {
     canvas.height = image.height;
 
     ctx.drawImage(image, 0, 0);
-
-    ctx.fillStyle = "white";
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(balloonPosition.x, balloonPosition.y, size, size * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    if (includeTail) {
-      ctx.beginPath();
-      ctx.moveTo(balloonPosition.x, balloonPosition.y + size * 0.6);
-      ctx.lineTo(balloonPosition.x + 20, balloonPosition.y + size * 0.6 + 40);
-      ctx.lineTo(balloonPosition.x + 40, balloonPosition.y + size * 0.6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+    const { x, y, boxWidth, boxHeight } = drawBalloon(ctx, size, includeTail);
 
     ctx.fillStyle = "black";
-    ctx.font = "24px Arial";
-    ctx.fillText(text, balloonPosition.x - size/2 + 20, balloonPosition.y);
+    ctx.font = "20px Arial";
+    wrapText(ctx, text, x, y, boxWidth, 24, boxHeight);
 
     const link = document.createElement("a");
     link.download = `output_${i}.png`;
