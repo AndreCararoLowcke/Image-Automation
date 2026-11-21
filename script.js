@@ -5,6 +5,8 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const sizeInput = document.getElementById("size");
 const tailInput = document.getElementById("tail");
+const tailSizeInput = document.getElementById("tail-size");
+const tailPosInput = document.getElementById("tail-pos");
 
 // Upload image
 document.getElementById("upload").addEventListener("change", (event) => {
@@ -37,6 +39,8 @@ document.getElementById("add-text").addEventListener("click", () => {
 // Live preview updates
 sizeInput.addEventListener("input", drawPreview);
 tailInput.addEventListener("change", drawPreview);
+tailSizeInput.addEventListener("input", drawPreview);
+tailPosInput.addEventListener("input", drawPreview);
 
 // Click sets balloon position (corrected for CSS scaling)
 canvas.addEventListener("click", (event) => {
@@ -111,9 +115,16 @@ function drawFittedText(ctx, text, x, y, boxWidth, boxHeight) {
 function drawBalloon(ctx, size, includeTail) {
   const boxWidth = size * 2;
   const boxHeight = size * 1.2;
-  // Keep balloon inside the image
+  const radius = 20;
+
+  const tailLen = parseInt(tailSizeInput.value);   // altura do tail
+  const tailW = tailLen;                           // largura da base
+  const tailPct = parseInt(tailPosInput.value) / 100;
+
+  // Mantém o balão (e o tail) dentro da imagem
+  const extra = includeTail ? tailLen : 0;
   const cx = Math.min(Math.max(balloonPosition.x, boxWidth / 2), canvas.width - boxWidth / 2);
-  const cy = Math.min(Math.max(balloonPosition.y, boxHeight / 2), canvas.height - boxHeight / 2);
+  const cy = Math.min(Math.max(balloonPosition.y, boxHeight / 2), canvas.height - boxHeight / 2 - extra);
   const x = cx - boxWidth / 2;
   const y = cy - boxHeight / 2;
 
@@ -122,26 +133,30 @@ function drawBalloon(ctx, size, includeTail) {
   ctx.lineWidth = 3;
   ctx.lineJoin = "round";
 
-  // Tail first, then box, then cover the seam
+  // Posição do tail ao longo da borda inferior (só na parte reta)
+  const minX = x + radius + tailW / 2;
+  const maxX = x + boxWidth - radius - tailW / 2;
+  const bx = maxX > minX ? minX + (maxX - minX) * tailPct : x + boxWidth / 2;
+  const tailY = y + boxHeight;
+
   if (includeTail) {
-    const tailY = y + boxHeight;
     ctx.beginPath();
-    ctx.moveTo(cx - 10, tailY - 2);
-    ctx.lineTo(cx + 20, tailY + 40);
-    ctx.lineTo(cx + 40, tailY - 2);
+    ctx.moveTo(bx - tailW / 2, tailY - 2);
+    ctx.lineTo(bx + tailW / 4, tailY + tailLen);
+    ctx.lineTo(bx + tailW / 2, tailY - 2);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
   }
 
-  drawRoundedRect(ctx, x, y, boxWidth, boxHeight, 20);
+  drawRoundedRect(ctx, x, y, boxWidth, boxHeight, radius);
   ctx.fill();
   ctx.stroke();
 
   if (includeTail) {
-    // Erase the border line where the tail joins the box
+    // Apaga a linha da borda onde o tail encontra o balão
     ctx.fillStyle = "white";
-    ctx.fillRect(cx - 8, y + boxHeight - 3, 46, 6);
+    ctx.fillRect(bx - tailW / 2 + 2, tailY - 2, tailW - 4, 4);
   }
 
   return { x, y, boxWidth, boxHeight };
